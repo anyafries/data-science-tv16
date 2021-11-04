@@ -34,23 +34,23 @@ str(steve)
 
 # this isn't useful yet I thought I was doing something else lol
 col_names <- c(
-                'votetrump' = "Voted Trump",
-                'age' = "Age",
-                'female' = "Female",
-                'collegeed' = "College Degree",
-                'racef' = "Race",
-                'famincr' = "Household Income",
-                'ideo' = "Ideology (liberal-conservative)",
-                'pid7na' = "Partisanship (democrat-republican)",
-                'bornagain' = "Born-again Christian",
-                'religimp' = "Importance of religion",
-                'churchatd' = "Church attendance",
-                'prayerfreq' = "Frequency of prayer",
-                'angryracism' = "Anger at racism",
-                'whiteadv' = "Belief in white priviledge",
-                'fearraces' = "Fears other races",
-                'racerare' = "Believes racism is rare",
-                )
+  'votetrump' = "Voted Trump",
+  'age' = "Age",
+  'female' = "Female",
+  'collegeed' = "College Degree",
+  'racef' = "Race",
+  'famincr' = "Household Income",
+  'ideo' = "Ideology (liberal-conservative)",
+  'pid7na' = "Partisanship (democrat-republican)",
+  'bornagain' = "Born-again Christian",
+  'religimp' = "Importance of religion",
+  'churchatd' = "Church attendance",
+  'prayerfreq' = "Frequency of prayer",
+  'angryracism' = "Anger at racism",
+  'whiteadv' = "Belief in white priviledge",
+  'fearraces' = "Fears other races",
+  'racerare' = "Believes racism is rare",
+)
 
 # check number of NAs
 kable(colSums(is.na(steve)))
@@ -62,15 +62,16 @@ kable(colSums(is.na(steve)))
 
 # data in column(s) 'state', 'racef' are not numeric so need to remove
 # correlation coefficients based on Pearson’s method
-ggcorr(select(steve,-c(racef,state)), 
+races <- c('Asian','Black','Hispanic','Middle Eastern', 'Mixed', 'Native American', 'Other', 'White')
+ggcorr(select(steve,-c(all_of(races),state),White, Black), 
        label = TRUE, label_size = 2,            # label changes
        hjust = 0.9, size = 3, color = "grey50", # text changes
        layout.exp = 3)                          # whitespace on left
 
 ### trumpvote
 # most strongly corr w trumpvote:
-  # - ideo, pid7na, whiteadv, lcograc
-  # - also plot race (was not in corr matrix)
+# - ideo, pid7na, whiteadv, lcograc
+# - also plot race (was not in corr matrix)
 
 # plot these and see a clear positive correlation
 # could be interesting to plot % of each group that vote/don't vote trump
@@ -103,8 +104,8 @@ ggplot(data=steve, aes(x=famincr)) +
 
 ### faminc
 # most strongly corr w famincr:
-  # - collegeed
-  # - also plot race (was not in corr matrix)
+# - collegeed
+# - also plot race (was not in corr matrix)
 
 ggplot(data=steve, aes(x=collegeed,y=famincr)) +
   geom_jitter(height=0.5, width=0.3, alpha=0.1)
@@ -118,9 +119,9 @@ ggplot(data=steve, aes(x=age,y=famincr)) +
   geom_jitter(height=0.5, width=0, alpha=0.1)
 
 # • Look for mutual correlations between these variables you identified in the last part. 
-    # Create scatterplots for pairs of covariates you believe correlates well to the response variable.
-    # Are correlations transitive in your data? That is, if A is correlated strongly with B, and B with C, 
-    # is A also correlated strongly with C in your data?
+# Create scatterplots for pairs of covariates you believe correlates well to the response variable.
+# Are correlations transitive in your data? That is, if A is correlated strongly with B, and B with C, 
+# is A also correlated strongly with C in your data?
 # • Can you visualize interesting patterns in your data?
 
 
