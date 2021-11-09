@@ -26,8 +26,24 @@ test <- TV16[test_indices,]
 str(steve)
 
 steve <- steve %>% 
-  mutate(value = 1)  %>% spread(racef, value, fill = 0) %>%  # one-hot encodings of races
-  select(-uid,-lrelig,-lcograc,-lemprac)                     # do not need individual ID + remove latent variables
+  mutate(value = 1, 
+         race=as.factor(racef), 
+         racef=as.factor(racef))  %>% 
+  spread(racef, value, fill = 0) %>%                  # one-hot encodings of races, keep column with all races though
+  select(-uid,-state,-lrelig,-lcograc,-lemprac) %>%   # do not need individual ID + remove latent variables
+  mutate(female=as.factor(female),                    # convert non-ordinal covariates to factors! 
+         collegeed=as.factor(collegeed),
+         bornagain=as.factor(bornagain),
+         race=as.factor(race),
+         Asian=as.factor(Asian),
+         Black=as.factor(Black),
+         `Middle Eastern`=as.factor(`Middle Eastern`),
+         Mixed=as.factor(Mixed),
+         `Native American`=as.factor(`Native American`),
+         Other=as.factor(Other),
+         White=as.factor(White)
+  )
+
 
 # Look at structure again
 str(steve)
@@ -38,7 +54,7 @@ col_names <- c(
   'age' = "Age",
   'female' = "Female",
   'collegeed' = "College Degree",
-  'racef' = "Race",
+  'race' = "Race",
   'famincr' = "Household Income",
   'ideo' = "Ideology (liberal-conservative)",
   'pid7na' = "Partisanship (democrat-republican)",
@@ -49,7 +65,7 @@ col_names <- c(
   'angryracism' = "Anger at racism",
   'whiteadv' = "Belief in white priviledge",
   'fearraces' = "Fears other races",
-  'racerare' = "Believes racism is rare",
+  'racerare' = "Believes racism is rare"
 )
 
 # check number of NAs
@@ -60,17 +76,17 @@ kable(colSums(is.na(steve)))
 # prediction binary will be on votetrump -> 19668 missing
 # TO DO: need to decide how to handle missing data
 
-# data in column(s) 'state', 'racef' are not numeric so need to remove
+# data in column(s) 'state', 'race' are not numeric so need to remove
 # correlation coefficients based on Pearson’s method
 races <- c('Asian','Black','Hispanic','Middle Eastern', 'Mixed', 'Native American', 'Other', 'White')
-ggcorr(select(steve,-c(all_of(races),state),White, Black), 
+ggcorr(select(steve,-c(all_of(races)),White, Black), 
        label = TRUE, label_size = 2,            # label changes
-       hjust = 0.9, size = 3, color = "grey50", # text changes
+       hjust = 0.8, size = 3, color = "grey50", # text changes
        layout.exp = 3)                          # whitespace on left
 
 ### trumpvote
 # most strongly corr w trumpvote:
-# - ideo, pid7na, whiteadv, lcograc
+# - ideo, pid7na, whiteadv
 # - also plot race (was not in corr matrix)
 
 # plot these and see a clear positive correlation
@@ -82,10 +98,8 @@ ggplot(data=steve, aes(x=pid7na)) +
   geom_bar() + facet_wrap(vars(votetrump),ncol=1)
 ggplot(data=steve, aes(x=whiteadv)) +
   geom_bar() + facet_wrap(vars(votetrump),ncol=1)
-ggplot(data=steve, aes(x=lcograc)) +
-  geom_density() + facet_wrap(vars(votetrump),ncol=1)
-ggplot(data=steve, aes(x=racef)) +
-  geom_bar() + facet_wrap(vars(votetrump),ncol=1) 
+ggplot(data=steve, aes(x=race)) +
+  geom_bar() + facet_wrap(vars(votetrump),ncol=1)
 
 # also but a bit less but still there: racerace, angryracism
 # these more just have a pattern with didn't vote trump
@@ -107,11 +121,13 @@ ggplot(data=steve, aes(x=famincr)) +
 # - collegeed
 # - also plot race (was not in corr matrix)
 
-ggplot(data=steve, aes(x=collegeed,y=famincr)) +
-  geom_jitter(height=0.5, width=0.3, alpha=0.1)
+ggplot(data=steve, aes(x=famincr,color=collegeed, fill=collegeed)) +
+  geom_density(position="identity",alpha=0.3,adjust=1.5) 
+# the adjust adds some smoothing -> needed bc of categoricalness of famincr
 
-ggplot(data=steve, aes(x=racef,y=famincr)) +
-  geom_jitter(height=0.5, width=0.3, alpha=0.1)
+ggplot(data=steve, aes(x=famincr, fill=race, color=race)) +
+  geom_density(height=0.5, width=0.3, alpha=0.1, legend.show=FALSE) + 
+  facet_wrap(vars(race),ncol=1)
 
 # some where we expect corr but don't get
 
@@ -155,8 +171,15 @@ other_votes/total_votes
 # - cross entropy loss
 # - (possible extension: equal weight to each type of error)
 # * logistic regression
+
+fm = glm(formula = votetrump ~ . - race, family = 'binomial', data=steve)
+summary(fm)
+  # White co-eff = NA??
+
 # * kNN
 # * decision trees
+
+
 
 #### Regression ###
 # - SSE/L2 norm
