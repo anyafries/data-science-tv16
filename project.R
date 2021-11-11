@@ -2,7 +2,11 @@ library(stevedata)
 library(tidyverse)
 library(knitr)
 library(GGally)
+library(cvTools)
+library(glmnet)
+library(randomForest)
 data(TV16)
+set.seed(2724)
 
 ## ------------------------------------------------------------
 ##                 Setting aside a holdout set
@@ -23,14 +27,20 @@ test <- TV16[test_indices,]
 ### Basic data cleaning
 
 # Look at structure
-str(steve)
+#str(steve)
+
+
+             
+#  select(-uid,-state,-bornagain,-religimp, - churchatd, -prayerfreq, -racerare, -whiteadv, -fearraces, -angryracism) %>%  
+#   select(-uid,-state,-lrelig,-lcograc,-lemprac) %>% 
+
 
 steve <- steve %>% 
   mutate(value = 1, 
          race=as.factor(racef), 
          racef=as.factor(racef))  %>% 
   spread(racef, value, fill = 0) %>%                  # one-hot encodings of races, keep column with all races though
-  select(-uid,-state,-lrelig,-lcograc,-lemprac) %>%   # do not need individual ID + remove latent variables
+  select(-uid,-state,-lrelig,-lcograc,-lemprac) %>%     # do not need individual ID + remove latent variables
   mutate(female=as.factor(female),                    # convert non-ordinal covariates to factors! 
          collegeed=as.factor(collegeed),
          bornagain=as.factor(bornagain),
@@ -46,7 +56,7 @@ steve <- steve %>%
 
 
 # Look at structure again
-str(steve)
+#str(steve)
 
 # this isn't useful yet I thought I was doing something else lol
 col_names <- c(
@@ -83,6 +93,21 @@ ggcorr(select(steve,-c(all_of(races)),White, Black),
        label = TRUE, label_size = 2,            # label changes
        hjust = 0.8, size = 3, color = "grey50", # text changes
        layout.exp = 3)                          # whitespace on left
+
+
+# Histograms
+
+ggplot(steve, aes(x=age)) + 
+  geom_histogram(color="black", fill="white")
+ggplot(steve, aes(x=famincr)) + 
+  geom_histogram(color="black", fill="white")
+
+#Look at NAs
+print(ggplot(steve[!is.na(steve$votetrump),], aes(x=ideo)) + 
+  geom_histogram(color="black", fill="white"))
+print(ggplot(steve[is.na(steve$votetrump),], aes(x=ideo)) + 
+  geom_histogram(color="black", fill="white"))
+
 
 ### trumpvote
 # most strongly corr w trumpvote:
@@ -190,10 +215,77 @@ summary(fm)
 # -> differing population model?
 
 
+# OLS
+
+#Remove rows where any value is NA for now *******
+#TODO: Align on how to handle NA values
+#steve <- steve[!is.na(steve$famincr),]
+steve <- drop_na(steve)
+
+#Convert factors to numbers
+#steve$Asian = as.numeric(steve$Asian) - 1
+#steve$Black = as.numeric(steve$Black) - 1
+#steve$Hispanic = as.numeric(steve$Hispanic) 
+#steve$"Middle Eastern" = as.numeric(steve$"Middle Eastern") - 1
+#steve$Mixed = as.numeric(steve$Mixed) - 1
+#steve$"Native American" = as.numeric(steve$"Native American") - 1
+#steve$Other = as.numeric(steve$Other) - 1
+
+# Remove race and white column (because otherwise with have rank-deficiency)
+steve <- steve %>% select(-race, -Other)
+
+# OLS model and CV for estimate
+OLS <- lm(famincr~.,steve)
+OLS.cv = cvFit(OLS, data=steve, y=steve$famincr, K=100, seed=161, cost=rmspe)
+
+# * OLS with interaction/higher order terms/regularisation
+
+#Scaling columns
+scaled_cols = c("pid7na","ideo","churchatd", "religimp", "prayerfreq" ,"angryracism", "whiteadv", "fearraces", "racerare")
+for(col in colnames(steve)){
+  if(col %in% scaled_cols){
+    steve[[col]] = scale(steve[[col]])
+  }
+}
+
+#Log transformation of age
+steve$age = log(steve$age)
+
+#Add some interactions terms
+steve$ideo_party = steve$ideo * steve$pid7na
+steve$ideo_racism = steve$ideo * steve$racerare
+steve$ideo_religion = steve$ideo * steve$religimp
+steve$race_gender = steve$female * steve$Black #intersectionality? 
+#steve$sex_race = as.numeric(steve$female) * as.numeric(steve$White)
+
+#Remove race variables 
+#steve <- steve %>% select(-Asian,-Black,-Hispanic,-"Middle Eastern", -Mixed, -"Native American", -"Other") 
+
+
+#Perform CV on transformed data
+OLS_plus <- lm(famincr~.,steve)
+OLS_plus.cv = cvFit(OLS_plus, data=steve, y=steve$famincr, K=100, seed=161, cost=rmspe)
+
+print(summary(OLS))
+print(OLS.cv)
+print(summary(OLS_plus))
+print(OLS_plus.cv)
 
 
 
+#Perform ridge regularization 
 
 
+lam = c(0.01, 0.1, 1, 10)
 
+ridge <- glmnet(select(steve,-famincr), steve$famincr, alpha=0, lambda = lam)
+ridge_cv <- cv.glmnet(x=data.matrix(select(steve,-famincr)), y=steve$famincr, nfolds = 100, type.measure="mse")
+
+#Implement random forest
+randomForest(famincr~., steve)
+
+#Plots:
+# Residuals
+# Lambda - CV error
+# Bias vs variance plot
 
