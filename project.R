@@ -206,7 +206,7 @@ summary(fm)
 
 
 
-#### Regression ###
+#### Regression ### --------------------------------------------------------
 # - SSE/L2 norm
 # * OLS
 # * OLS with interaction/higher order terms/regularisation
@@ -216,6 +216,8 @@ summary(fm)
 
 
 # OLS
+
+
 
 #Remove rows where any value is NA for now *******
 #TODO: Align on how to handle NA values
@@ -238,6 +240,14 @@ steve <- steve %>% select(-race, -Other)
 OLS <- lm(famincr~.,steve)
 OLS.cv = cvFit(OLS, data=steve, y=steve$famincr, K=100, seed=161, cost=rmspe)
 
+
+steve_removed <- steve %>% select(famincr, age)
+OLS_removed <- lm(famincr~.,steve_removed)
+OLS_removed.cv = cvFit(OLS, data=steve_removed, y=steve$famincr, K=100, seed=161, cost=rmspe)
+#Baseline 
+mean_inc <- mean(steve_removed$famincr)
+baseline_RMSE = sqrt(sum((steve_removed$famincr - mean_inc)^2)/(length(steve_removed$famincr)))
+
 # * OLS with interaction/higher order terms/regularisation
 
 #Scaling columns
@@ -255,8 +265,7 @@ steve$age = log(steve$age)
 steve$ideo_party = steve$ideo * steve$pid7na
 steve$ideo_racism = steve$ideo * steve$racerare
 steve$ideo_religion = steve$ideo * steve$religimp
-steve$race_gender = steve$female * steve$Black #intersectionality? 
-#steve$sex_race = as.numeric(steve$female) * as.numeric(steve$White)
+steve$sex_race = as.numeric(steve$female) * as.numeric(steve$Black)#discussion on intersectionality? 
 
 #Remove race variables 
 #steve <- steve %>% select(-Asian,-Black,-Hispanic,-"Middle Eastern", -Mixed, -"Native American", -"Other") 
@@ -264,7 +273,7 @@ steve$race_gender = steve$female * steve$Black #intersectionality?
 
 #Perform CV on transformed data
 OLS_plus <- lm(famincr~.,steve)
-OLS_plus.cv = cvFit(OLS_plus, data=steve, y=steve$famincr, K=100, seed=161, cost=rmspe)
+OLS_plus.cv = cvFit(OLS_plus, data=steve, y=steve$famincr, K=10, R=10, seed=161, cost=rmspe)
 
 print(summary(OLS))
 print(OLS.cv)
@@ -272,20 +281,92 @@ print(summary(OLS_plus))
 print(OLS_plus.cv)
 
 
-
+print("Ridge Regularization ---------------------------------------")
 #Perform ridge regularization 
 
 
-lam = c(0.01, 0.1, 1, 10)
+lam = exp(seq(-2,5,.5))
 
 ridge <- glmnet(select(steve,-famincr), steve$famincr, alpha=0, lambda = lam)
-ridge_cv <- cv.glmnet(x=data.matrix(select(steve,-famincr)), y=steve$famincr, nfolds = 100, type.measure="mse")
+ridge_cv <- cv.glmnet(x=data.matrix(select(steve,-famincr)), y=steve$famincr, nfolds = 10, type.measure="mse", alpha=0)
+
+
+print("Random Forest ---------------------------------------")
 
 #Implement random forest
-randomForest(famincr~., steve)
+steve <- rename(steve, "MiddleEastern" = "Middle Eastern")
+steve <- rename(steve, "NativeAmerican" = "Native American")
 
-#Plots:
-# Residuals
-# Lambda - CV error
-# Bias vs variance plot
+#steve_sample = sample(steve, 2)
+#rf <- randomForest(famincr~., steve, type = "regression", ntree=100, nodesize = 1000)
+#rf.cv <- rfcv(trainx = data.matrix(select(steve,-famincr)), trainy = steve$famincr, cv.fold =10, type = "regression", ntree=100, maxnodes = 10)
 
+
+
+print("Plots ---------------------------------------")
+
+# Residual plot of OLS
+
+plot_subset <- data.frame(x = steve$famincr, y = OLS$residuals)
+plot_subset <- plot_subset[sample(nrow(plot_subset),300),]
+
+resid_plot <- ggplot(plot_subset) +
+  geom_point(mapping = aes(x, y), position="jitter") +
+  labs(x = "Income", y = "Residuals", 
+       title = paste("Residuals of", format(OLS$call)))
+
+
+# Error as a function of lambda
+
+mean_cv_error = sqrt(ridge_cv$cvm)
+upper_cv_error = sqrt(ridge_cv$cvup)
+lower_cv_error = sqrt(ridge_cv$cvlo)
+lambdas = log(ridge_cv$lambda)
+
+lambda_data = data.frame(x=lambdas, y = mean_cv_error, upper = upper_cv_error, lower = lower_cv_error)
+
+lambda_plot = ggplot(lambda_data, aes(x=x, y=y)) + 
+  geom_errorbar(aes(ymin=lower, ymax=upper), width=.1) +
+  geom_point()
+
+
+# Coeff for each variable
+
+#Scaling columns
+#TODO: check scaling
+steve_scaled <- steve
+for(col in colnames(steve)){
+    steve_scaled[[col]] = scale(as.numeric(steve[[col]]))
+}
+OLS_scaled = lm(famincr ~ ., steve_scaled)
+print(summary(OLS_scaled))
+
+factor_names = rownames(data.frame(coef(OLS_scaled)))
+coefs = data.frame(names = factor_names, val = coef(OLS_scaled))
+ggplot(data=coefs) + geom_bar(mapping = aes(x = names, y=val), stat="identity")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+#Random forest
+print("Random Forest start---")
+#compare the importance to the coefficients on the linear OLS model as well
+#importance(rf)
+
+#Plot both hyper parameters and also no. of features as well 
+
+trees = c(10,50,100, 500, 1000)
+nodes = c(10000,5000,1000,500,100)
+rf_error = data.frame(trees=rep(NA,25), nodesize = rep(NA,25), RMSE=rep(NA,25))
+
+i = 1
+for(nt in trees){
+  for(nn in nodes){
+    rf_tune <- randomForest(famincr~., steve, type = "regression", ntree=nt, nodesize = nn)
+    RMSE = sqrt(sum((rf_tune$predicted - steve$famincr)^2)/length(steve$famincr))
+    rf_error$trees[i] = nt
+    rf_error$nodesize[i] = nn
+    rf_error$RMSE[i] = RMSE
+    i <- i+1
+  }
+}
+print(RMSE)
+#rf.cv <- rfcv(trainx = data.matrix(select(steve,-famincr)), trainy = steve$famincr, cv.fold =10, type = "regression", ntree=100, maxnodes = 10)
