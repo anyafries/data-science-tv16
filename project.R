@@ -1,3 +1,4 @@
+library(MASS)
 library(stevedata)
 library(tidyverse)
 library(knitr)
@@ -184,6 +185,8 @@ total_votes <- trump_votes + other_votes
 ##                        Prediction
 ## ------------------------------------------------------------
 
+
+
 # cross validation! 
 
 # comment on: 
@@ -233,12 +236,46 @@ steve <- drop_na(steve)
 #steve$"Native American" = as.numeric(steve$"Native American") - 1
 #steve$Other = as.numeric(steve$Other) - 1
 
+steve_race_factor <- steve %>% select(-Asian, -Black, -Hispanic, -"Middle Eastern", -Mixed, -"Native American", -Other, -White)
+
 # Remove race and white column (because otherwise with have rank-deficiency)
 steve <- steve %>% select(-race, -Other)
+
+#Save a checkpoint for steve
+steve_org <- steve
 
 # OLS model and CV for estimate
 OLS <- lm(famincr~.,steve)
 OLS.cv = cvFit(OLS, data=steve, y=steve$famincr, K=100, seed=161, cost=rmspe)
+
+
+
+#calculate cross validation error
+#Randomly shuffle the data
+steve<-steve[sample(nrow(steve)),]
+
+#Create 10 equally size folds
+folds <- cut(seq(1,nrow(steve)),breaks=10,labels=FALSE)
+OLS_errors = rep(NA,10)
+
+
+#Perform 10 fold cross validation
+for(i in 1:10){
+  #Segement your data by fold using the which() function 
+  testIndexes <- which(folds==i,arr.ind=TRUE)
+  testData <- steve[testIndexes, ]
+  trainData <- steve[-testIndexes, ]
+  #Use the test and train data partitions however you desire...
+  OLS_CV_model = lm(famincr~.,steve)
+  OLS_CV_pred = predict(OLS_CV_model,select(testData,-famincr))
+  OLS_errors[i] = sqrt(mean((OLS_CV_pred - as.numeric(testData$famincr))^2))
+  
+  
+}
+print(OLS_errors)
+
+
+
 
 
 steve_removed <- steve %>% select(famincr, age)
@@ -247,6 +284,13 @@ OLS_removed.cv = cvFit(OLS, data=steve_removed, y=steve$famincr, K=100, seed=161
 #Baseline 
 mean_inc <- mean(steve_removed$famincr)
 baseline_RMSE = sqrt(sum((steve_removed$famincr - mean_inc)^2)/(length(steve_removed$famincr)))
+
+
+print(baseline_RMSE)
+
+
+
+
 
 # * OLS with interaction/higher order terms/regularisation
 
@@ -272,7 +316,7 @@ steve$sex_race = as.numeric(steve$female) * as.numeric(steve$Black)#discussion o
 
 
 #Perform CV on transformed data
-OLS_plus <- lm(famincr~.,steve)
+OLS_plus <- lm(famincr~.+.*.,steve)
 OLS_plus.cv = cvFit(OLS_plus, data=steve, y=steve$famincr, K=10, R=10, seed=161, cost=rmspe)
 
 print(summary(OLS))
@@ -281,17 +325,73 @@ print(summary(OLS_plus))
 print(OLS_plus.cv)
 
 
+
+#calculate cross validation error
+#Randomly shuffle the data
+steve<-steve[sample(nrow(steve)),]
+
+#Create 10 equally size folds
+folds <- cut(seq(1,nrow(steve)),breaks=10,labels=FALSE)
+OLS_plus_errors = rep(NA,10)
+
+
+#Perform 10 fold cross validation
+for(i in 1:10){
+  #Segement your data by fold using the which() function 
+  testIndexes <- which(folds==i,arr.ind=TRUE)
+  testData <- steve[testIndexes, ]
+  trainData <- steve[-testIndexes, ]
+  #Use the test and train data partitions however you desire...
+  OLS_plus_CV_model = lm(famincr~.,steve)
+  OLS_plus_CV_pred = predict(OLS_plus_CV_model,select(testData,-famincr))
+  OLS_plus_errors[i] = sqrt(mean((OLS_plus_CV_pred - as.numeric(testData$famincr))^2))
+  
+}
+print(OLS_plus_errors)
+
+
+
+
+
 print("Ridge Regularization ---------------------------------------")
 #Perform ridge regularization 
 
+steve <- steve_org
 
-lam = exp(seq(-2,5,.5))
+lam = exp(seq(-5,5,.5))
 
 ridge <- glmnet(select(steve,-famincr), steve$famincr, alpha=0, lambda = lam)
-ridge_cv <- cv.glmnet(x=data.matrix(select(steve,-famincr)), y=steve$famincr, nfolds = 10, type.measure="mse", alpha=0)
+ridge_cv <- cv.glmnet(x=data.matrix(select(steve,-famincr)), y=steve$famincr, nfolds = 10, type.measure="mse", alpha=0, lambda=lam)
 
+
+#calculate cross validation error
+#Randomly shuffle the data
+steve<-steve[sample(nrow(steve)),]
+
+#Create 10 equally size folds
+folds <- cut(seq(1,nrow(steve)),breaks=10,labels=FALSE)
+
+ridge_errors = rep(NA,10)
+
+
+#Perform 10 fold cross validation
+for(i in 1:10){
+  #Segement your data by fold using the which() function 
+  testIndexes <- which(folds==i,arr.ind=TRUE)
+  testData <- steve[testIndexes, ]
+  trainData <- steve[-testIndexes, ]
+  #Use the test and train data partitions however you desire...
+  ridge_CV_model = glmnet(select(trainData,-famincr), trainData$famincr, alpha=0, lambda = lam)
+  ridge_CV_pred = predict(ridge_CV_model,data.matrix(select(testData,-famincr)))
+  ridge_errors[i] = sqrt(mean((ridge_CV_pred - as.numeric(testData$famincr))^2))
+  
+  
+}
+print(ridge_errors)
 
 print("Random Forest ---------------------------------------")
+
+
 
 #Implement random forest
 steve <- rename(steve, "MiddleEastern" = "Middle Eastern")
@@ -306,14 +406,15 @@ steve <- rename(steve, "NativeAmerican" = "Native American")
 print("Plots ---------------------------------------")
 
 # Residual plot of OLS
+steve <- steve_org
+
+OLS_confusion_matrix = table(round(predict(OLS,steve_org),digits=0),steve_org$famincr)
 
 plot_subset <- data.frame(x = steve$famincr, y = OLS$residuals)
 plot_subset <- plot_subset[sample(nrow(plot_subset),300),]
 
-resid_plot <- ggplot(plot_subset) +
-  geom_point(mapping = aes(x, y), position="jitter") +
-  labs(x = "Income", y = "Residuals", 
-       title = paste("Residuals of", format(OLS$call)))
+resid_plot <- ggplot(plot_subset) +  geom_point(mapping = aes(x, y), position="jitter") +
+    labs(x = "Income", y = "Residuals", title = paste("Residuals of OLS model (with jitter)")) + scale_x_continuous(breaks=seq(1,12,1)) 
 
 
 # Error as a function of lambda
@@ -327,7 +428,7 @@ lambda_data = data.frame(x=lambdas, y = mean_cv_error, upper = upper_cv_error, l
 
 lambda_plot = ggplot(lambda_data, aes(x=x, y=y)) + 
   geom_errorbar(aes(ymin=lower, ymax=upper), width=.1) +
-  geom_point()
+  geom_point() + labs(title="Ridge Regression - 10-fold CV error by lambda" ,x="log(lambda)", y="RMSE")
 
 
 # Coeff for each variable
@@ -351,10 +452,18 @@ print("Random Forest start---")
 #compare the importance to the coefficients on the linear OLS model as well
 #importance(rf)
 
+steve <- steve_org
+steve <- rename(steve, "MiddleEastern" = "Middle Eastern")
+steve <- rename(steve, "NativeAmerican" = "Native American")
+
+
 #Plot both hyper parameters and also no. of features as well 
 
-trees = c(10,50,100, 500, 1000)
-nodes = c(10000,5000,1000,500,100)
+trees=c(100)
+nodes = c(10000)
+
+#trees = c(10,50,100, 500, 1000)
+#nodes = c(10000,5000,1000,500,100)
 rf_error = data.frame(trees=rep(NA,25), nodesize = rep(NA,25), RMSE=rep(NA,25))
 
 i = 1
@@ -368,5 +477,137 @@ for(nt in trees){
     i <- i+1
   }
 }
-print(RMSE)
+print(rf_error)
 #rf.cv <- rfcv(trainx = data.matrix(select(steve,-famincr)), trainy = steve$famincr, cv.fold =10, type = "regression", ntree=100, maxnodes = 10)
+
+
+#calculate cross validation error
+#Randomly shuffle the data
+steve<-steve[sample(nrow(steve)),]
+
+#Create 10 equally size folds
+folds <- cut(seq(1,nrow(steve)),breaks=10,labels=FALSE)
+
+rf_errors = rep(NA,10)
+
+
+#Perform 10 fold cross validation
+for(i in 1:10){
+  #Segement your data by fold using the which() function 
+  testIndexes <- which(folds==i,arr.ind=TRUE)
+  testData <- steve[testIndexes, ]
+  trainData <- steve[-testIndexes, ]
+  #Use the test and train data partitions however you desire...
+  rf_CV_model = randomForest(famincr~., steve, type = "regression", ntree=100, nodesize = 5000)
+  rf_CV_pred = as.numeric(predict(rf_CV_model, testData))
+  rf_errors[i] = sqrt(mean((rf_CV_pred - as.numeric(testData$famincr))^2))
+}
+
+
+
+
+# Ordinal logistic regression
+
+#reveret back to before the transformations
+steve <- steve_race_factor
+
+#remove age because too many levels and preventing from converging
+steve<- steve %>% select(-age)
+
+# Make sure everything is as a factor
+
+ordered_cols = c("famincr", "ideo", "pid7na", "religimp", "churchatd", "prayerfreq", "angryracism", "whiteadv", "fearraces", "racerare")
+
+for(col in colnames(steve)){
+  if(col %in% ordered_cols){
+    steve[[col]] = factor(steve[[col]], ordered=TRUE, levels = sort(as.numeric(unique(steve[[col]]))))
+  }
+  else{
+    steve[[col]] = as.factor(steve[[col]])
+  }
+}
+
+
+
+
+OLR = polr(famincr~., steve, method="logistic")
+#calculate training error
+predictincr = predict(OLR,select(steve,-famincr))
+confusion_matrix = table(steve$famincr, predictincr)
+predict_rmse= sqrt(mean((as.numeric(predictincr) - as.numeric(steve$famincr))^2))
+
+
+#calculate cross validation error
+#Randomly shuffle the data
+steve<-steve[sample(nrow(steve)),]
+
+#Create 10 equally size folds
+folds <- cut(seq(1,nrow(steve)),breaks=10,labels=FALSE)
+
+OLR_errors = rep(NA,10)
+
+
+#Perform 10 fold cross validation
+for(i in 1:10){
+  #Segement your data by fold using the which() function 
+  testIndexes <- which(folds==i,arr.ind=TRUE)
+  testData <- steve[testIndexes, ]
+  trainData <- steve[-testIndexes, ]
+  #Use the test and train data partitions however you desire...
+  OLR_CV_model = polr(famincr~., trainData, method="logistic")
+  OLR_CV_pred = as.numeric(predict(OLR_CV_model, testData))
+  OLR_errors[i] = sqrt(mean((OLR_CV_pred - as.numeric(testData$famincr))^2))
+}
+
+
+
+
+# Generate summary plot **********************
+
+
+
+OLS_errors = data.frame(model = "OLS", rmse=OLS_errors)
+OLS_plus_errors= data.frame(model = "OLS w/ add'l terms", rmse=OLS_plus_errors)
+ridge_errors = data.frame(model = "Ridge", rmse=ridge_errors)
+rf_errors = data.frame(model = "Random Forest", rmse=rf_errors)
+#OLR_errors = data.frame(model = "Ordinal Regression", rmse=OLR_errors)
+baseline_RMSE = data.frame(model="Baseline", rmse = baseline_RMSE)
+
+sum_data = rbind(OLS_errors, OLS_plus_errors,ridge_errors,rf_errors,baseline_RMSE)
+
+sum_plot <- ggplot(sum_data, aes(x=model, y=rmse)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+mean_OLS_CV_error = mean(OLS_errors$rmse.rmse)
+mean_OLS_plus_CV_error = mean(OLS_plus_errors$rmse.rmse)
+mean_ridge_CV_error = mean(ridge_errors$rmse.rmse)
+mean_rf_CV_error = mean(rf_errors$rmse.rmse)
+baseline_RMSE_error = baseline_RMSE$rmse.rmse
+
+training_OLS_RMSE = sqrt(mean((OLS$residuals)^2))
+training_OLS_plus_RMSE = sqrt(mean((OLS_plus$residuals)^2))
+training_ridge_RMSE = sqrt(mean((predict(ridge,data.matrix(select(steve_org,-famincr)), lambda=.01)- steve_org$famincr)^2))
+training_RF_RMSE = sqrt(8.136521)
+
+bar_chart_data = data.frame(
+  type = c("CV", "CV","CV","CV","CV","training","training","training","training","training"),
+  model = c("OLS", "OLS plus", "Ridge", "RF", "Baseline","OLS", "OLS plus", "Ridge", "RF", "Baseline"),
+  error = c(mean_OLS_CV_error,mean_OLS_plus_CV_error,mean_ridge_CV_error,mean_rf_CV_error,baseline_RMSE_error,training_OLS_RMSE, training_OLS_plus_RMSE, training_ridge_RMSE, training_RF_RMSE, NA )
+)
+ggplot(data=bar_chart_data, aes(x=model, y=error, fill=type)) +
+  geom_bar(stat="identity", position=position_dodge()) + coord_cartesian(ylim=c(2.5,3.25))
+
+steve <- steve_org
+steve$votetrump <- as.factor(steve$votetrump)
+
+ggplot(steve, aes(x=famincr)) +     geom_histogram(color="black", fill="white", binwidth=1) + scale_x_continuous(breaks=seq(1,12,1)) + labs(title="Family Income: 1(<$10k)-12(>$150k)")
+
+ggplot(steve, aes(x=pid7na)) +    geom_histogram(color="black", fill="white", binwidth=1) + scale_x_continuous(breaks=seq(1,7,1)) + labs(title="Political Party (higher = more Republican)")
+
+ggplot(steve, aes(x=ideo)) +    geom_histogram(color="black", fill="white", binwidth=1) + scale_x_continuous(breaks=seq(1,5,1)) + labs(title="Political Spectrum (higher = more conservative)")
+
+ggplot(data = steve) +    geom_bar(mapping = aes(x = pid7na, fill=votetrump), position = "dodge") + labs(title="Political Party by Trump Vote", x="Political Party (higher = more Republican)") + scale_x_continuous(breaks=seq(1,7,1)) +  scale_fill_manual(name="Voted for Trump", labels = c("No", "Yes"), values = c("blue", "red"))
+
+ggplot(data = steve) + 
+  geom_bar(mapping = aes(x = famincr, fill=collegeed), position = "dodge") + labs(title="Family Income by College Education", x="Income: 1(<$10k)-12(>$150k)") + scale_x_continuous(breaks=seq(1,12,1)) +  scale_fill_manual(name="College Educated", labels = c("No", "Yes"), values = c("grey", "orange"))
+
+ggplot(data=coefs) + geom_bar(mapping = aes(x = names, y=val), stat="identity")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ labs(title="Scaled OLS Coefficients", x = "Factor", y="Value")
