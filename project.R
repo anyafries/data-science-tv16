@@ -7,7 +7,6 @@ library(cvTools)
 library(glmnet)
 library(randomForest)
 data(TV16)
-set.seed(2724)
 
 ###############################################################
 ## ------------------------------------------------------------
@@ -16,6 +15,7 @@ set.seed(2724)
 ###############################################################
 
 # Random data split
+set.seed(2724)
 n_rows <- nrow(TV16)
 n_rows_test <- as.integer(0.2 * n_rows)
 n_rows_steve <- n_rows - n_rows_test
@@ -30,15 +30,6 @@ test <- TV16[test_indices,]
 ###############################################################
 
 ### Basic data cleaning
-
-# Look at structure
-#str(steve)
-
-
-             
-#  select(-uid,-state,-bornagain,-religimp, - churchatd, -prayerfreq, -racerare, -whiteadv, -fearraces, -angryracism) %>%  
-#   select(-uid,-state,-lrelig,-lcograc,-lemprac) %>% 
-
 
 steve <- steve %>% 
   # mutate(value = 1, 
@@ -63,30 +54,10 @@ steve <- steve %>%
 
 
 # Look at structure again
-#str(steve)
-
-# this isn't useful yet I thought I was doing something else lol
-col_names <- c(
-  'votetrump' = "Voted Trump",
-  'age' = "Age",
-  'female' = "Female",
-  'collegeed' = "College Degree",
-  'race' = "Race",
-  'famincr' = "Household Income",
-  'ideo' = "Ideology (liberal-conservative)",
-  'pid7na' = "Partisanship (democrat-republican)",
-  'bornagain' = "Born-again Christian",
-  'religimp' = "Importance of religion",
-  'churchatd' = "Church attendance",
-  'prayerfreq' = "Frequency of prayer",
-  'angryracism' = "Anger at racism",
-  'whiteadv' = "Belief in white priviledge",
-  'fearraces' = "Fears other races",
-  'racerare' = "Believes racism is rare"
-)
+str(steve)
 
 # ---------------------------------------------
-### Checking NAs ###
+#                Checking NAs 
 # ---------------------------------------------
 
 # check number of NAs
@@ -209,7 +180,6 @@ plot_grid(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,ncol=4)
 
 steve<-steve.complete
 
-
 ## Correlation plot
 library(ggcorrplot)
 
@@ -224,8 +194,6 @@ model.matrix(~0+., data=select(steve,c(race,votetrump,famincr))) %>%
   cor(use="pairwise.complete.obs") %>% 
   ggcorrplot(show.diag = F, type="lower", lab=TRUE, lab_size=2,
              colors = c("#6D9EC1", "white", "#E46726"))
-
-
 
 # Histograms
 
@@ -291,25 +259,14 @@ ggplot(data=steve, aes(x=famincr, fill=race, color=race)) +
 ggplot(data=steve, aes(x=age,y=famincr)) +
   geom_jitter(height=0.5, width=0, alpha=0.1)
 
-# • Look for mutual correlations between these variables you identified in the last part. 
-# Create scatterplots for pairs of covariates you believe correlates well to the response variable.
-# Are correlations transitive in your data? That is, if A is correlated strongly with B, and B with C, 
-# is A also correlated strongly with C in your data?
-# • Can you visualize interesting patterns in your data?
 
-
-### Some more exploration
-
-# Ideally, you will look at your data many different ways; for example, it’s useful to 
-# look at means and variances of columns, grouped based on the level of a categorical variable.
+## Useful numbers
 
 trump_votes <- sum(steve$votetrump==1,na.rm=TRUE)
 other_votes <- sum(steve$votetrump==0,na.rm=TRUE)
 total_votes <- trump_votes + other_votes
 
-# Variables to possibly add:
-# - Interaction terms, higher order terms
-# - One hots of certain states
+
 
 ###############################################################
 ## ------------------------------------------------------------
@@ -745,12 +702,7 @@ tree <- rpart(
   cp=0
 )
 tree
-
-      ## This line crashes R 
-      ## but it plots the tree
-      ##     :(
-
-# fancyRpartPlot(tree, caption = NULL)
+fancyRpartPlot(tree, caption = NULL)
 
 #########################################
 #    *** Comparison across models ***   
