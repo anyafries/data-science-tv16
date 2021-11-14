@@ -765,22 +765,35 @@ ggplot(all.cv.errs, aes(x=Model, y=CV.Error.Train)) +
 mean.cv.errs <- all.cv.errs %>%
   group_by(Model) %>%
   summarize(`CV training error`=mean(CV.Error.Train),
-            `CV test error`=mean(CV.Error.Test),
-            FPR=mean(FPR),
-            FNR=1-mean(TPR)) %>%
-  pivot_longer(., cols = c(`CV training error`,`CV test error`,FPR,FNR), names_to = "Statistic", values_to = "Val") 
+            `CV test error`=mean(CV.Error.Test)#,
+            # FPR=mean(FPR),
+            # FNR=1-mean(TPR)
+            ) %>%
+  pivot_longer(., cols = c(`CV training error`,`CV test error`), names_to = "Statistic", values_to = "Val")  #,FPR,FNR in cols
 
 ## Grouped by model on x axis
 ggplot(mean.cv.errs, aes(x=Model,y=Val, fill=Statistic)) +
   geom_col(position="dodge") +
   scale_fill_brewer(palette = "Accent") + 
-  labs(y="")
+  labs(y="",x="") #+ 
+  #coord_flip() + 
+  #theme(legend.position = "bottom", legend.direction = "vertical")
 
 ## Grouped by statistic on x axis
 ggplot(mean.cv.errs, aes(x=Statistic,y=Val, fill=Model)) +
   geom_col(position="dodge") +
   scale_fill_brewer(palette = "Pastel1") +
-  labs(y="")
+  labs(y="",x="") 
+
+
+
+#########################################
+#    *** Final Model Choice ***   
+#########################################
+fm.logistic <- glm(formula = votetrump ~ . , family = 'binomial', data=steve)
+pred.logistic <- predict(fm.logistic, newdata = steve, type="response")
+err <- errors(pred.logistic, steve$votetrump, thresh=0.5)
+
 
 ## ------------------------------------------------------------
 ##                          Regression
