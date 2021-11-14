@@ -806,7 +806,7 @@ for(i in 1:10){
   testData <- steve[testIndexes, ]
   trainData <- steve[-testIndexes, ]
   #Use the test and train data partitions however you desire...
-  OLS_CV_model = lm(famincr~.,steve)
+  OLS_CV_model = lm(famincr~.,trainData)
   OLS_CV_pred = predict(OLS_CV_model,select(testData,-famincr))
   OLS_errors[i] = sqrt(mean((OLS_CV_pred - as.numeric(testData$famincr))^2))
   
@@ -882,7 +882,7 @@ for(i in 1:10){
   testData <- steve[testIndexes, ]
   trainData <- steve[-testIndexes, ]
   #Use the test and train data partitions however you desire...
-  OLS_plus_CV_model = lm(famincr~.,steve)
+  OLS_plus_CV_model = lm(famincr~.,trainData)
   OLS_plus_CV_pred = predict(OLS_plus_CV_model,select(testData,-famincr))
   OLS_plus_errors[i] = sqrt(mean((OLS_plus_CV_pred - as.numeric(testData$famincr))^2))
   
