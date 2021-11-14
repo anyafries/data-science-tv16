@@ -10,7 +10,7 @@ for(i in 1:10){
   testIndexes <- which(folds==i,arr.ind=TRUE)
   testData <- steve[testIndexes, ]
   trainData <- steve[-testIndexes, ]
-  OLS_CV_model = lm(famincr~.,steve)
+  OLS_CV_model = lm(famincr~.,trainData)
   OLS_CV_pred = predict(OLS_CV_model,select(testData,-famincr))
   OLS_errors[i] = sqrt(mean((OLS_CV_pred - as.numeric(testData$famincr))^2))
 }
