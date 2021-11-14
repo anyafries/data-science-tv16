@@ -594,7 +594,7 @@ bar_chart_data = data.frame(
   error = c(mean_OLS_CV_error,mean_OLS_plus_CV_error,mean_ridge_CV_error,mean_rf_CV_error,baseline_RMSE_error,training_OLS_RMSE, training_OLS_plus_RMSE, training_ridge_RMSE, training_RF_RMSE, NA )
 )
 ggplot(data=bar_chart_data, aes(x=model, y=error, fill=type)) +
-  geom_bar(stat="identity", position=position_dodge()) + coord_cartesian(ylim=c(2.5,3.25))
+  geom_bar(stat="identity", position=position_dodge()) + coord_cartesian(ylim=c(2.5,3.25)) + labs(title="Training vs CV RMSE of Regression Models")
 
 steve <- steve_org
 steve$votetrump <- as.factor(steve$votetrump)
