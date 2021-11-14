@@ -1,18 +1,14 @@
 ###############################################################
-## ------------------------------------------------------------
 ##                        Best Models
-## ------------------------------------------------------------
 ###############################################################
 
-# Our training data set is called steve
-
 ## ------------------------------------------------------------
-##                     Classification
+##                        Classification
 ## ------------------------------------------------------------
 
 # Build logistic model on training data with all variables and a threshold of 5
 t <- 5
-fm.logistic <- glm(formula = votetrump ~ . , family = 'binomial', data=steve)
+fm.logistic <- glm(formula = votetrump ~ . , family = 'binomial', data=train)
 
 # Cross entropy loss
 calc_class_err = function(actual, predicted) {
@@ -37,14 +33,14 @@ errors <- function(predictions, truth, thresh = 0.5) {
 # CV: get errors, FPR, TPR
 set.seed(42)
 num_folds <- 5
-steve1 <- steve[sample(nrow(steve)),]
-folds <- cut(seq(1,nrow(steve1)),breaks=num_folds,labels=FALSE)
+train1 <- train[sample(nrow(train)),]
+folds <- cut(seq(1,nrow(train1)),breaks=num_folds,labels=FALSE)
 
 logistic.CV.errs <- data.frame(threshold=c(), err.train=c(), err.cv=c(), tpr=c(), fpr=c())
 for(i in 1:num_folds){
   cv.testIndexes <- which(folds==i,arr.ind=TRUE)
-  cv.testData <- steve1[cv.testIndexes, ] 
-  cv.trainData <- steve1[-cv.testIndexes, ] 
+  cv.testData <- train1[cv.testIndexes, ] 
+  cv.trainData <- train1[-cv.testIndexes, ] 
   
   ## Logistic model with all variables 
   fm.logistic = glm(formula = votetrump ~ . , family = 'binomial', data=cv.trainData)
@@ -66,17 +62,17 @@ for(i in 1:num_folds){
 ## ------------------------------------------------------------
 
 # OLS model and CV using R packages
-OLS <- lm(famincr~.,steve)
-OLS.cv = cvFit(OLS, data=steve, y=steve$famincr, K=100, seed=161, cost=rmspe)
+OLS <- lm(famincr~.,train)
+OLS.cv = cvFit(OLS, data=train, y=train$famincr, K=100, seed=161, cost=rmspe)
 
 #Calculate CV Error
-steve<-steve[sample(nrow(steve)),]
-folds <- cut(seq(1,nrow(steve)),breaks=10,labels=FALSE)
+train2<-train[sample(nrow(train)),]
+folds <- cut(seq(1,nrow(train2)),breaks=10,labels=FALSE)
 OLS_errors = rep(NA,10)
 for(i in 1:10){
   testIndexes <- which(folds==i,arr.ind=TRUE)
-  testData <- steve[testIndexes, ]
-  trainData <- steve[-testIndexes, ]
+  testData <- train2[testIndexes, ]
+  trainData <- train2[-testIndexes, ]
   OLS_CV_model = lm(famincr~.,trainData)
   OLS_CV_pred = predict(OLS_CV_model,select(testData,-famincr))
   OLS_errors[i] = sqrt(mean((OLS_CV_pred - as.numeric(testData$famincr))^2))
