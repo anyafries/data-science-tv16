@@ -1,3 +1,70 @@
+###############################################################
+## ------------------------------------------------------------
+##                        Best Models
+## ------------------------------------------------------------
+###############################################################
+
+# Our training data set is called steve
+
+## ------------------------------------------------------------
+##                     Classification
+## ------------------------------------------------------------
+
+# Build logistic model on training data with all variables and a threshold of 5
+t <- 5
+fm.logistic <- glm(formula = votetrump ~ . , family = 'binomial', data=steve)
+
+# Cross entropy loss
+calc_class_err = function(actual, predicted) {
+  mean(actual != predicted, na.rm=TRUE)
+}
+
+# Get errors, FPR, TPR
+errors <- function(predictions, truth, thresh = 0.5) {
+  binary.predictions <- as.numeric(predictions>thresh)
+  CE.loss <- calc_class_err(binary.predictions,truth)
+  
+  TP <- sum(as.numeric(binary.predictions[binary.predictions==truth]),na.rm=TRUE)
+  TN <- sum(as.numeric(1-binary.predictions[binary.predictions==truth]),na.rm=TRUE)
+  FP <- sum(as.numeric(binary.predictions[binary.predictions!=truth]),na.rm=TRUE)
+  FN <- sum(as.numeric(1-binary.predictions[binary.predictions!=truth]),na.rm=TRUE)
+  TPR <- TP/(FN+TP)
+  FPR <- FP/(TN+FP)
+
+  return(c(CE.loss, TPR, FPR))
+}
+
+# CV: get errors, FPR, TPR
+set.seed(42)
+num_folds <- 5
+steve1 <- steve[sample(nrow(steve)),]
+folds <- cut(seq(1,nrow(steve1)),breaks=num_folds,labels=FALSE)
+
+logistic.CV.errs <- data.frame(threshold=c(), err.train=c(), err.cv=c(), tpr=c(), fpr=c())
+for(i in 1:num_folds){
+  cv.testIndexes <- which(folds==i,arr.ind=TRUE)
+  cv.testData <- steve1[cv.testIndexes, ] 
+  cv.trainData <- steve1[-cv.testIndexes, ] 
+  
+  ## Logistic model with all variables 
+  fm.logistic = glm(formula = votetrump ~ . , family = 'binomial', data=cv.trainData)
+  pred.logistic <- predict(fm.logistic, newdata = cv.testData, type="response")
+  err <- errors(pred.logistic, cv.testData$votetrump, thresh=t)
+  err_train <- errors(predict(fm.logistic, newdata = cv.trainData, type="response"),
+                      cv.trainData$votetrump,
+                      thresh=t)
+  df.tmp <- data.frame(threshold=c(t),
+                        err.train=c(err_train[1]),
+                        err.cv=c(err[1]), 
+                        tpr = c(err[2]),
+                        fpr = c(err[3]))
+  logistic.CV.errs <- rbind(logistic.CV.errs,df.tmp)
+}
+
+## ------------------------------------------------------------
+##                        Regression
+## ------------------------------------------------------------
+
 # OLS model and CV using R packages
 OLS <- lm(famincr~.,steve)
 OLS.cv = cvFit(OLS, data=steve, y=steve$famincr, K=100, seed=161, cost=rmspe)
