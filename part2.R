@@ -95,7 +95,9 @@ for(i in 1:num_folds){
   logistic.CV.errs <- rbind(logistic.CV.errs,df.tmp)
   
   ## Logistic model with originally chosen variables: ideo, pid7na, whiteadv
-  fm.logistic2 = glm(formula = votetrump ~ ideo + pid7na + whiteadv , family = 'binomial', data=cv.trainData)
+  fm.logistic2 = glm(formula = votetrump ~ ideo + pid7na + whiteadv +
+                       collegeed + bornagain + whiteadv + race,
+                     family = 'binomial', data=cv.trainData)
   pred.logistic2 <- predict(fm.logistic2, newdata = cv.testData, type="response")
   err2 <- errors(pred.logistic2, cv.testData$votetrump, thresh=0.5)
   err_train2 <- errors(predict(fm.logistic2, newdata = cv.trainData, type="response"), cv.trainData$votetrump, thresh=0.5)
@@ -219,9 +221,13 @@ summary(fm.test)
 # ---
 # Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
+
 coeff_names = rownames(summary(fm)$coefficients)
 
-# CIs from std regression output
+#########################################
+#   *** CIs from regression table ***   
+#########################################
+
 (CIs.regtable.train <- data.frame(
   coef = coeff_names,
   lower = summary(fm)$coefficients[,1] - 1.96*summary(fm)$coefficients[,2],
@@ -234,8 +240,10 @@ coeff_names = rownames(summary(fm)$coefficients)
   upper = summary(fm.test)$coefficients[,1] + 1.96*summary(fm.test)$coefficients[,2]
 ))
 
-#### Use the bootstrap to estimate confidence intervals 
-#### for each of your regression coefficients.
+
+#########################################
+#  *** Bootstrap for CI estimation ***   
+#########################################
 
 library(rsample)
 n.boot <- 100
@@ -263,15 +271,16 @@ CIs.bootstrap.train[,2:3] - CIs.regtable.train[,2:3] # Difference between CIs re
 
 
 
+###########################################
+#  * Comparison of coeffs to other model *   
+###########################################
+## Choose a reasonable model with only a subset of the covariates for comparison. 
+## Did the significant coefficients change? If so, explain the differences.
 
-
-
-
-
-
-
-
-
+fm.other = glm(formula = votetrump ~ ideo + pid7na + whiteadv +
+                     collegeed + bornagain + whiteadv + race,
+                   family = 'binomial', data=steve)
+summary(fm.other)
 
 
 
