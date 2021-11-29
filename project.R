@@ -204,9 +204,9 @@ ggplot(steve, aes(x=famincr)) +
 
 #Look at NAs
 print(ggplot(steve[!is.na(steve$votetrump),], aes(x=ideo)) + 
-  geom_histogram(color="black", fill="white"))
+        geom_histogram(color="black", fill="white"))
 print(ggplot(steve[is.na(steve$votetrump),], aes(x=ideo)) + 
-  geom_histogram(color="black", fill="white"))
+        geom_histogram(color="black", fill="white"))
 
 
 ### trumpvote
@@ -301,7 +301,7 @@ errors <- function(predictions, truth, thresh = 0.5) {
   TN <- sum(as.numeric(1-binary.predictions[binary.predictions==truth]),na.rm=TRUE)
   FP <- sum(as.numeric(binary.predictions[binary.predictions!=truth]),na.rm=TRUE)
   FN <- sum(as.numeric(1-binary.predictions[binary.predictions!=truth]),na.rm=TRUE)
-
+  
   TPR <- TP/(FN+TP)
   FPR <- FP/(TN+FP)
   
@@ -353,18 +353,18 @@ for(j in 1:length(thresholds)){
     pred.logistic2 <- predict(fm.logistic2, newdata = cv.testData, type="response")
     err2 <- errors(pred.logistic2, cv.testData$votetrump, thresh=t)
     err_train2 <- errors(predict(fm.logistic2, newdata = cv.trainData, type="response"),
-                        cv.trainData$votetrump,
-                        thresh=t)
+                         cv.trainData$votetrump,
+                         thresh=t)
     df.tmp2 <- data.frame(threshold=c(t),
-                         err.train=c(err_train2[1]),
-                         err.cv=c(err2[1]),
-                         tpr = c(err2[2]),
-                         fpr = c(err2[3]))
+                          err.train=c(err_train2[1]),
+                          err.cv=c(err2[1]),
+                          tpr = c(err2[2]),
+                          fpr = c(err2[3]))
     logistic.CV.errs2 <- rbind(logistic.CV.errs2,df.tmp2)
     
     ## Logistic model with variables that have greatest coefficient in OG model
     fm.logistic3 = glm(formula = votetrump ~ ideo + pid7na + whiteadv +
-                                 collegeed + bornagain + whiteadv + race,
+                         collegeed + bornagain + whiteadv + race,
                        family = 'binomial', data=cv.trainData)
     pred.logistic3 <- predict(fm.logistic3, newdata = cv.testData, type="response")
     err3 <- errors(pred.logistic3,cv.testData$votetrump,thresh=t)
@@ -456,7 +456,7 @@ ggplot() +
                                                 "Logistic B"="red2",
                                                 "Logistic C"="chartreuse4",
                                                 "Logistic D"="orange")) 
-  
+
 ## get the best threshold for each model
 best.log <- logistic.means[which(logistic.means$mean.err == min(logistic.means$mean.err)),] 
 best.log2 <- logistic.means2[which(logistic.means2$mean.err == min(logistic.means2$mean.err)),] 
@@ -465,40 +465,40 @@ best.log4 <- logistic.means4[which(logistic.means4$mean.err == min(logistic.mean
 
 ## Plot boxplots of CV error
 cv.err.across.logistic <- data.frame(Model=c(
-                                      rep(paste("Logistic A\n (Threshold = ", best.log$threshold,")", sep=""),num_folds),
-                                      rep(paste("Logistic B\n (Threshold = ", best.log2$threshold,")",sep=""),num_folds),
-                                      rep(paste("Logistic C\n (Threshold = ", best.log3$threshold,")",sep=""),num_folds),
-                                      rep(paste("Logistic D\n (Threshold = ", best.log4$threshold,")",sep=""),num_folds)),
-                                     CV.Error.Train=c(
-                                       logistic.CV.errs[which(logistic.CV.errs$threshold == best.log$threshold),"err.train"],
-                                       logistic.CV.errs2[which(logistic.CV.errs2$threshold == best.log2$threshold),"err.train"],
-                                       logistic.CV.errs3[which(logistic.CV.errs3$threshold == best.log3$threshold),"err.train"],
-                                       logistic.CV.errs4[which(logistic.CV.errs4$threshold == best.log4$threshold),"err.train"]
-                                     ),
-                                     CV.Error.Test=c(
-                                       logistic.CV.errs[which(logistic.CV.errs$threshold == best.log$threshold),"err.cv"],
-                                       logistic.CV.errs2[which(logistic.CV.errs2$threshold == best.log2$threshold),"err.cv"],
-                                       logistic.CV.errs3[which(logistic.CV.errs3$threshold == best.log3$threshold),"err.cv"],
-                                       logistic.CV.errs4[which(logistic.CV.errs4$threshold == best.log4$threshold),"err.cv"]
-                                     ),
-                                     FPR=c(
-                                       logistic.CV.errs[which(logistic.CV.errs$threshold == best.log$threshold),"fpr"],
-                                       logistic.CV.errs2[which(logistic.CV.errs2$threshold == best.log2$threshold),"fpr"],
-                                       logistic.CV.errs3[which(logistic.CV.errs3$threshold == best.log3$threshold),"fpr"],
-                                       logistic.CV.errs4[which(logistic.CV.errs4$threshold == best.log4$threshold),"fpr"]
-                                     ),
-                                     TPR=c(
-                                       logistic.CV.errs[which(logistic.CV.errs$threshold == best.log$threshold),"tpr"],
-                                       logistic.CV.errs2[which(logistic.CV.errs2$threshold == best.log2$threshold),"tpr"],
-                                       logistic.CV.errs3[which(logistic.CV.errs3$threshold == best.log3$threshold),"tpr"],
-                                       logistic.CV.errs4[which(logistic.CV.errs4$threshold == best.log4$threshold),"tpr"]
-                                     ))
+  rep(paste("Logistic A\n (Threshold = ", best.log$threshold,")", sep=""),num_folds),
+  rep(paste("Logistic B\n (Threshold = ", best.log2$threshold,")",sep=""),num_folds),
+  rep(paste("Logistic C\n (Threshold = ", best.log3$threshold,")",sep=""),num_folds),
+  rep(paste("Logistic D\n (Threshold = ", best.log4$threshold,")",sep=""),num_folds)),
+  CV.Error.Train=c(
+    logistic.CV.errs[which(logistic.CV.errs$threshold == best.log$threshold),"err.train"],
+    logistic.CV.errs2[which(logistic.CV.errs2$threshold == best.log2$threshold),"err.train"],
+    logistic.CV.errs3[which(logistic.CV.errs3$threshold == best.log3$threshold),"err.train"],
+    logistic.CV.errs4[which(logistic.CV.errs4$threshold == best.log4$threshold),"err.train"]
+  ),
+  CV.Error.Test=c(
+    logistic.CV.errs[which(logistic.CV.errs$threshold == best.log$threshold),"err.cv"],
+    logistic.CV.errs2[which(logistic.CV.errs2$threshold == best.log2$threshold),"err.cv"],
+    logistic.CV.errs3[which(logistic.CV.errs3$threshold == best.log3$threshold),"err.cv"],
+    logistic.CV.errs4[which(logistic.CV.errs4$threshold == best.log4$threshold),"err.cv"]
+  ),
+  FPR=c(
+    logistic.CV.errs[which(logistic.CV.errs$threshold == best.log$threshold),"fpr"],
+    logistic.CV.errs2[which(logistic.CV.errs2$threshold == best.log2$threshold),"fpr"],
+    logistic.CV.errs3[which(logistic.CV.errs3$threshold == best.log3$threshold),"fpr"],
+    logistic.CV.errs4[which(logistic.CV.errs4$threshold == best.log4$threshold),"fpr"]
+  ),
+  TPR=c(
+    logistic.CV.errs[which(logistic.CV.errs$threshold == best.log$threshold),"tpr"],
+    logistic.CV.errs2[which(logistic.CV.errs2$threshold == best.log2$threshold),"tpr"],
+    logistic.CV.errs3[which(logistic.CV.errs3$threshold == best.log3$threshold),"tpr"],
+    logistic.CV.errs4[which(logistic.CV.errs4$threshold == best.log4$threshold),"tpr"]
+  ))
 
 cv.err.across.logistic %>% 
   group_by(Model) %>%
   summarize(`Estimated Error`=mean(CV.Error.Test)) %>%
   ggplot(aes(Model, `Estimated Error`)) + 
-    geom_col()
+  geom_col()
 
 #########################################
 #              *** kNN ***
@@ -688,10 +688,10 @@ ggplot(tree.CV.means, aes(mean.fpr, mean.tpr)) +
 best.tree <- tree.CV.means[which(tree.CV.means$mean.err == min_err),]
 best.depth <- best.tree$depth
 cv.err.best.tree <- data.frame(Model=c(rep(paste("Decision Tree A\n (depth = ",best.depth,")", sep=""),num_folds)),
-                              CV.Error.Train=tree.CV.errs[which(tree.CV.errs$depth == best.depth),"err.train"],
-                              CV.Error.Test =tree.CV.errs[which(tree.CV.errs$depth == best.depth),"err.cv"],
-                              FPR=tree.CV.errs[which(tree.CV.errs$depth == best.depth),"fpr"],
-                              TPR=tree.CV.errs[which(tree.CV.errs$depth == best.depth),"tpr"])
+                               CV.Error.Train=tree.CV.errs[which(tree.CV.errs$depth == best.depth),"err.train"],
+                               CV.Error.Test =tree.CV.errs[which(tree.CV.errs$depth == best.depth),"err.cv"],
+                               FPR=tree.CV.errs[which(tree.CV.errs$depth == best.depth),"fpr"],
+                               TPR=tree.CV.errs[which(tree.CV.errs$depth == best.depth),"tpr"])
 
 ## Plot best tree on all steve data (training data)
 tree <- rpart(
@@ -720,7 +720,7 @@ mean.cv.errs <- all.cv.errs %>%
             `CV test error`=mean(CV.Error.Test)#,
             # FPR=mean(FPR),
             # FNR=1-mean(TPR)
-            ) %>%
+  ) %>%
   pivot_longer(., cols = c(`CV training error`,`CV test error`), names_to = "Statistic", values_to = "Val")  #,FPR,FNR in cols
 
 ## Grouped by model on x axis
@@ -728,8 +728,8 @@ ggplot(mean.cv.errs, aes(x=Model,y=Val, fill=Statistic)) +
   geom_col(position="dodge") +
   scale_fill_brewer(palette = "Accent") + 
   labs(y="",x="") #+ 
-  #coord_flip() + 
-  #theme(legend.position = "bottom", legend.direction = "vertical")
+#coord_flip() + 
+#theme(legend.position = "bottom", legend.direction = "vertical")
 
 ## Grouped by statistic on x axis
 ggplot(mean.cv.errs, aes(x=Statistic,y=Val, fill=Model)) +
@@ -747,20 +747,12 @@ pred.logistic <- predict(fm.logistic, newdata = steve, type="response")
 err <- errors(pred.logistic, steve$votetrump, thresh=0.5)
 
 
-## ------------------------------------------------------------
-##                          Regression
-## ------------------------------------------------------------
-# - SSE/L2 norm
-# * OLS
-# * OLS with interaction/higher order terms/regularisation
-
-# Last step: see if we can do it on 2020 data 
-# -> differing population model?
 
 
-# OLS
 
-
+#########################################
+#         *** Data Preprocessing ***          
+#########################################
 
 #Remove rows where any value is NA for now *******
 #TODO: Align on how to handle NA values
@@ -783,6 +775,11 @@ steve <- steve %>% select(-race, -Other)
 
 #Save a checkpoint for steve
 steve_org <- steve
+
+#########################################
+#         *** OLS Model ***          
+#########################################
+
 
 # OLS model and CV for estimate
 OLS <- lm(famincr~.,steve)
@@ -814,14 +811,57 @@ for(i in 1:10){
 }
 print(OLS_errors)
 
+#########################################
+#         *** OLS on test set ***          
+#########################################
+print("Test set generalization error")
+
+
+test <- test %>% 
+  # mutate(value = 1, 
+  #        race=as.factor(racef), 
+  #        racef=as.factor(racef))  %>% 
+  # spread(racef, value, fill = 0) %>%                  # one-hot encodings of races, keep column with all races though
+  select(-uid,-state,-lrelig,-lcograc,-lemprac) %>%   # do not need individual ID + remove latent variables
+  mutate(female=as.factor(female),                    # convert non-ordinal covariates to factors! 
+         collegeed=as.factor(collegeed),
+         race=as.factor(racef),
+         bornagain=as.factor(bornagain),
+         votetrump=as.factor(votetrump)
+         # Asian=as.factor(Asian),
+         # Black=as.factor(Black),
+         # `Middle Eastern`=as.factor(`Middle Eastern`),
+         # Mixed=as.factor(Mixed),
+         # `Native American`=as.factor(`Native American`),
+         # Other=as.factor(Other),
+         # White=as.factor(White)
+  ) %>%
+  select(-racef)
+
+
+test <- drop_na(test)
+#test <- test %>% select(-race, -Other)
+
+
+OLS_test_pred= predict(OLS,select(test,-famincr))
+OLS_test_error = sqrt(mean((OLS_test_pred - as.numeric(test$famincr))^2))
+print(OLS_test_error)
 
 
 
+#########################################
+#         *** OLS with age removed ***          
+#########################################
 
 steve_removed <- steve %>% select(famincr, age)
 OLS_removed <- lm(famincr~.,steve_removed)
 OLS_removed.cv = cvFit(OLS, data=steve_removed, y=steve$famincr, K=100, seed=161, cost=rmspe)
-#Baseline 
+
+
+#########################################
+#         *** Baseline ***          
+#########################################
+
 mean_inc <- mean(steve_removed$famincr)
 baseline_RMSE = sqrt(sum((steve_removed$famincr - mean_inc)^2)/(length(steve_removed$famincr)))
 
@@ -830,9 +870,10 @@ print(baseline_RMSE)
 
 
 
+#########################################
+#         *** OLS Plus ***          
+#########################################
 
-
-# * OLS with interaction/higher order terms/regularisation
 
 #Scaling columns
 scaled_cols = c("pid7na","ideo","churchatd", "religimp", "prayerfreq" ,"angryracism", "whiteadv", "fearraces", "racerare")
@@ -891,7 +932,9 @@ print(OLS_plus_errors)
 
 
 
-
+#########################################
+#         *** Ridge Regression ***          
+#########################################
 
 print("Ridge Regularization ---------------------------------------")
 #Perform ridge regularization 
@@ -929,6 +972,11 @@ for(i in 1:10){
 }
 print(ridge_errors)
 
+
+#########################################
+#         *** Random Forest ***          
+#########################################
+
 print("Random Forest ---------------------------------------")
 
 
@@ -943,6 +991,10 @@ steve <- rename(steve, "NativeAmerican" = "Native American")
 
 
 
+#########################################
+#         *** Residual Plot ***          
+#########################################
+
 print("Plots ---------------------------------------")
 
 # Residual plot of OLS
@@ -954,8 +1006,12 @@ plot_subset <- data.frame(x = steve$famincr, y = OLS$residuals)
 plot_subset <- plot_subset[sample(nrow(plot_subset),300),]
 
 resid_plot <- ggplot(plot_subset) +  geom_point(mapping = aes(x, y), position="jitter") +
-    labs(x = "Income", y = "Residuals", title = paste("Residuals of OLS model (with jitter)")) + scale_x_continuous(breaks=seq(1,12,1)) 
+  labs(x = "Income", y = "Residuals", title = paste("Residuals of OLS model (with jitter)")) + scale_x_continuous(breaks=seq(1,12,1)) 
 
+
+#########################################
+#         *** Lambda Error Plot ***          
+#########################################
 
 # Error as a function of lambda
 
@@ -971,13 +1027,15 @@ lambda_plot = ggplot(lambda_data, aes(x=x, y=y)) +
   geom_point() + labs(title="Ridge Regression - 10-fold CV error by lambda" ,x="log(lambda)", y="RMSE")
 
 
-# Coeff for each variable
+#########################################
+#         *** Scaled OLS Coefficients ***          
+#########################################
 
 #Scaling columns
 #TODO: check scaling
 steve_scaled <- steve
 for(col in colnames(steve)){
-    steve_scaled[[col]] = scale(as.numeric(steve[[col]]))
+  steve_scaled[[col]] = scale(as.numeric(steve[[col]]))
 }
 OLS_scaled = lm(famincr ~ ., steve_scaled)
 print(summary(OLS_scaled))
@@ -987,7 +1045,10 @@ coefs = data.frame(names = factor_names, val = coef(OLS_scaled))
 ggplot(data=coefs) + geom_bar(mapping = aes(x = names, y=val), stat="identity")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 
-#Random forest
+#########################################
+#         *** Random Forest Plots ***          
+#########################################
+
 print("Random Forest start---")
 #compare the importance to the coefficients on the linear OLS model as well
 #importance(rf)
@@ -1018,6 +1079,11 @@ for(nt in trees){
   }
 }
 print(rf_error)
+
+#########################################
+#         *** Random Forest CV ***          
+#########################################
+
 #rf.cv <- rfcv(trainx = data.matrix(select(steve,-famincr)), trainy = steve$famincr, cv.fold =10, type = "regression", ntree=100, maxnodes = 10)
 
 
@@ -1044,7 +1110,9 @@ for(i in 1:10){
 }
 
 
-
+#########################################
+#         *** Ordinal Logistic Regression ***          
+#########################################
 
 # Ordinal logistic regression
 
@@ -1101,6 +1169,9 @@ for(i in 1:10){
 
 
 
+#########################################
+#         *** Summary Plot ***          
+#########################################
 
 # Generate summary plot **********************
 
@@ -1135,6 +1206,12 @@ bar_chart_data = data.frame(
 )
 ggplot(data=bar_chart_data, aes(x=model, y=error, fill=type)) +
   geom_bar(stat="identity", position=position_dodge()) + coord_cartesian(ylim=c(2.5,3.25)) + labs(title="Training vs CV RMSE of Regression Models")
+
+
+
+#########################################
+#         *** Other Plots ***          
+#########################################
 
 steve <- steve_org
 steve$votetrump <- as.factor(steve$votetrump)
